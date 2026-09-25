@@ -114,4 +114,4 @@ El proyecto sigue las fases de **CRISP-DM**:
 
 ## ✍️ Autores
 
-Cesar Maldonado, Diana Carolina López y Alejandra Galindo — Maestría en Ciencia de Datos, UPB 2026
+Cesar Maldonado, Diana Carolina López y Alejandra Galindo

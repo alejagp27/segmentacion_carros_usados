@@ -308,5 +308,4 @@ st.caption('**Silueta:** va de -1 a 1 y mide qué tan parecido es cada vehículo
            'normalizados. Cuanto menor, más compactos son los perfiles; sirve para comparar modelos, no tiene unidades. '
            'Modelo K-means con 11 perfiles, entrenado con 26.306 vehículos. Los perfiles 7, 9 y 10 tienen silueta '
            'por debajo de la meta.')
-st.markdown('<div class="pie">🚗 🚙 🏎️ 🚕 🚐<br>Tasación inteligente de vehículos usados mediante minería de datos · '
-            'Maestría en Ciencia de Datos, UPB 2026</div>', unsafe_allow_html=True)
+st.markdown('<div class="pie">🚗 🚙 🏎️ 🚕 🚐<br>Tasación inteligente de vehículos usados mediante minería de datos</div>', unsafe_allow_html=True)

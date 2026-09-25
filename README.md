@@ -1,5 +1,7 @@
 # 🚗 Segmentación de Vehículos Usados — Inventario UK
 
+**Proyecto:** Tasación inteligente de vehículos usados mediante minería de datos — Dataset 26.000 UK Used Cars
+
 Aplicación web que asigna un vehículo usado a uno de los perfiles del inventario, a partir de sus características, y muestra la estrategia de compra y venta del segmento al que pertenece. Desarrollada como parte del proyecto final del curso de Minería de Datos — Maestría en Ciencia de Datos, Universidad Pontificia Bolivariana.
 
 ---
@@ -62,8 +64,8 @@ Preparación: normalización Min-Max de las variables numéricas y variables dum
 
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/<usuario>/<repositorio>
-cd <repositorio>
+git clone https://github.com/alejagp27/segmentacion_carros_usados
+cd segmentacion_carros_usados
 
 # 2. Instalar dependencias
 pip install -r requirements.txt
@@ -76,7 +78,7 @@ streamlit run app.py
 
 ## 🌐 Aplicación en línea
 
-👉 [Ver aplicación en Streamlit](<enlace de la app>)
+👉 [Ver aplicación en Streamlit](https://segmentacioncarrosusados-4cah8vvussugmmu4qs7s7c.streamlit.app)
 
 ---
 
@@ -104,4 +106,4 @@ El proyecto sigue las fases de **CRISP-DM**:
 
 ## ✍️ Autores
 
-<Nombres del equipo> — Maestría en Ciencia de Datos, UPB 2026
+Cesar Maldonado, Diana Carolina López y Alejandra Galindo — Maestría en Ciencia de Datos, UPB 2026

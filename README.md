@@ -8,13 +8,20 @@ Aplicación web que asigna un vehículo usado a uno de los perfiles del inventar
 
 ## 📌 Descripción
 
-El comprador ingresa las características del vehículo (marca, transmisión, combustible, año, millas, impuesto, rendimiento, tamaño del motor y precio publicado) y la aplicación devuelve:
+La aplicación tiene tres secciones:
+
+**1. Consultar la segmentación del inventario.** Una sección desplegable muestra los 4 segmentos y los 11 perfiles que resultaron del clustering, con el número de vehículos, el precio mediano, el rango de precios y la silueta de cada perfil. No requiere ingresar ningún dato.
+
+**2. Identificar el segmento de un vehículo.** El comprador ingresa las características del vehículo (marca, transmisión, combustible, año, millas, impuesto, rendimiento, tamaño del motor y precio publicado) y la aplicación devuelve:
 
 - El **perfil** al que pertenece (uno de 11) y su descripción.
 - El **segmento de negocio** (uno de 4).
 - El precio mediano del perfil y la diferencia porcentual frente al precio ingresado.
 - La **estrategia de compra y rotación** del segmento.
+- La **silueta del perfil asignado** frente a la meta de 0,5, con un aviso si es uno de los perfiles menos definidos (7, 9 y 10).
 - Una alerta cuando el vehículo se aleja de lo habitual en su perfil.
+
+**3. Calidad del modelo.** Al final de la página se muestran siempre la silueta general (0,644) y la inercia general (7.607,7), con una explicación de qué significa cada una.
 
 ---
 

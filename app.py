@@ -72,6 +72,21 @@ PERFILES = {
                          'Su precio es similar al de los premium manuales.'),
 }
 
+# Número de vehículos de cada perfil en el entrenamiento (total: 26.306)
+N_VEHICULOS = {0: 2901, 1: 2694, 2: 2250, 3: 3009, 4: 1783, 5: 2118,
+               6: 1808, 7: 2708, 8: 1630, 9: 3448, 10: 1957}
+TOTAL = sum(N_VEHICULOS.values())
+
+DESCRIPCION_SEGMENTOS = {
+    'Premium alto': 'Audi y BMW recientes (2017–2019), con pocas millas y mayoritariamente automáticos '
+                    'o semiautomáticos. Los de mayor precio del inventario.',
+    'Premium automático accesible': 'BMW automáticos de 2016 con kilometraje medio y el mejor rendimiento '
+                                    'del inventario. Precio intermedio.',
+    'Premium de entrada manual': 'Audi y BMW 100% manuales, por debajo de £17.000 en promedio. '
+                                 'Los diésel tienen el mayor kilometraje y el menor impuesto.',
+    'Generalista': 'Todos los Hyundai: gasolina económico (perfil 0) y diésel e híbrido (perfil 10).',
+}
+
 SEGMENTOS = {
     'Premium alto': dict(
         compras='Captar vehículos de 2018–2019 con menos de 20.000 millas y usar la mediana del perfil como '
@@ -100,6 +115,31 @@ st.title('🚗 Segmento del vehículo')
 st.markdown('Ingresa las características del vehículo para saber a qué perfil y segmento del inventario pertenece, '
             'y qué estrategia de compra y venta aplica.')
 
+with st.expander('📊 Ver todos los perfiles y segmentos del inventario'):
+    st.markdown('El modelo K-means agrupó los **26.306 vehículos** del inventario en **11 perfiles**, que a su vez '
+                'se agrupan en **4 segmentos de negocio** según marca, transmisión y nivel de precio.')
+
+    fmt = lambda n: f'{n:,}'.replace(',', '.')
+    filas_seg = []
+    for nombre, desc in DESCRIPCION_SEGMENTOS.items():
+        ids = [k for k, v in PERFILES.items() if v['segmento'] == nombre]
+        n = sum(N_VEHICULOS[k] for k in ids)
+        filas_seg.append({'Segmento': nombre, 'Perfiles': ', '.join(map(str, ids)),
+                          'Vehículos': f"{fmt(n)} ({f'{n / TOTAL * 100:.1f}'.replace('.', ',')}%)",
+                          'Descripción': desc})
+    st.markdown('**Segmentos**')
+    st.dataframe(pd.DataFrame(filas_seg), hide_index=True, width='stretch')
+
+    filas_perf = [{'Perfil': k, 'Descripción': v['nombre'], 'Segmento': v['segmento'],
+                   'Vehículos': fmt(N_VEHICULOS[k]),
+                   'Precio mediano': f"£{fmt(v['mediana'])}", '80% de los precios': v['rango'],
+                   'Silueta': f"{v['silueta']:.3f}".replace('.', ',')} for k, v in PERFILES.items()]
+    st.markdown('**Perfiles**')
+    st.dataframe(pd.DataFrame(filas_perf), hide_index=True, width='stretch')
+    st.caption('Silueta por perfil: la meta es 0,5. Los perfiles 7, 9 y 10 están por debajo, '
+               'así que su descripción representa con menos precisión a cada vehículo.')
+
+st.markdown('#### Identificar el segmento de un vehículo')
 col1, col2 = st.columns(2)
 with col1:
     brand = st.selectbox('Marca', ['Audi', 'BMW', 'Hyundai'])

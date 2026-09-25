@@ -18,6 +18,11 @@ modelo, variables, min_max_scaler = cargar_modelo()
 variables = list(variables)
 NUMERICAS = ['year', 'mileage', 'tax', 'mpg', 'engineSize', 'price']
 
+# Métricas de calidad del modelo final (evaluado con el 100% de los datos)
+INERCIA_GLOBAL = 7607.7
+SILUETA_GLOBAL = 0.644
+META_SILUETA = 0.5
+
 # ── Perfiles del modelo final (k=11, n_init=100, random_state=42) ────────
 # p95: distancia al centroide que no supera el 95% de los vehículos del perfil
 PERFILES = {
@@ -144,13 +149,37 @@ if st.button('🔎 Identificar segmento', type='primary'):
     if distancia > perfil['p95']:
         st.warning('Este vehículo se aleja de lo habitual en su perfil (está más lejos del centroide que el 95% '
                    'de los vehículos del perfil). Valóralo de forma individual antes de hacer una oferta.')
-    if perfil['silueta'] < 0.5:
-        st.info('Este perfil es de los menos definidos del modelo (silueta por debajo de 0,5): '
-                'su descripción representa con menos precisión a cada vehículo.')
-
     st.subheader('Estrategia para este segmento')
     st.markdown(f"**Compra:** {segmento['compras']}")
     st.markdown(f"**Rotación y venta:** {segmento['rotacion']}")
 
     st.caption('Datos ingresados')
     st.dataframe(data, hide_index=True)
+
+    # 6. Confiabilidad de la asignación para este perfil
+    st.subheader('Confiabilidad de este resultado')
+    sil = perfil['silueta']
+    st.metric(f'Silueta del perfil {cluster}', f'{sil:.3f}'.replace('.', ','),
+              delta=f'{sil - META_SILUETA:+.3f} frente a la meta de 0,5'.replace('.', ','))
+    if sil < META_SILUETA:
+        st.warning(f'La silueta de este perfil es {sil:.3f}'.replace('.', ',') + ', por debajo de la meta de 0,5. '
+                   'Es uno de los tres perfiles menos definidos del modelo (7, 9 y 10): sus vehículos se parecen '
+                   'menos entre sí, así que la descripción, el precio mediano y la estrategia representan con menos '
+                   'precisión a este vehículo. Valóralo de forma individual.')
+    else:
+        st.write('La silueta de este perfil supera la meta de 0,5: sus vehículos son parecidos entre sí y '
+                 'están bien separados de los demás perfiles, así que la descripción es representativa.')
+
+# ── Calidad general del modelo (siempre visible) ─────────────────────────
+st.divider()
+st.subheader('Calidad del modelo')
+m1, m2 = st.columns(2)
+m1.metric('Silueta general', f'{SILUETA_GLOBAL:.3f}'.replace('.', ','), delta='Cumple la meta de 0,5',
+          delta_color='off')
+m2.metric('Inercia general', f'{INERCIA_GLOBAL:,.1f}'.replace(',', 'X').replace('.', ',').replace('X', '.'))
+st.caption('**Silueta:** va de -1 a 1 y mide qué tan parecido es cada vehículo a los de su perfil frente a los del '
+           'perfil más cercano. Valores cercanos a 1 indican perfiles bien definidos; la meta del proyecto es 0,5. '
+           '**Inercia:** suma de las distancias al cuadrado de cada vehículo a su centroide, con los datos '
+           'normalizados. Cuanto menor, más compactos son los perfiles; sirve para comparar modelos, no tiene unidades. '
+           'Modelo K-means con 11 perfiles, entrenado con 26.306 vehículos. Los perfiles 7, 9 y 10 tienen silueta '
+           'por debajo de la meta.')

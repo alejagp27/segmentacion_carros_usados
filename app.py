@@ -4,7 +4,7 @@ import pickle
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title='Segmento del vehículo', page_icon='🚗', layout='centered')
+st.set_page_config(page_title='Perfiles de vehículos usados', page_icon='🚗', layout='wide')
 
 
 # ── Cargar modelo: [KMeans, columnas del entrenamiento, MinMaxScaler] ────
@@ -110,53 +110,129 @@ SEGMENTOS = {
                  'enfoque en primer auto y familias con presupuesto ajustado.'),
 }
 
-# ── Interfaz ─────────────────────────────────────────────────────────────
-st.title('🚗 Segmento del vehículo')
-st.markdown('Ingresa las características del vehículo para saber a qué perfil y segmento del inventario pertenece, '
-            'y qué estrategia de compra y venta aplica.')
+# ── Estilo visual por segmento: (emoji, color) ───────────────────────────
+ESTILO_SEG = {
+    'Premium alto': ('🏎️', '#1F4E79'),
+    'Premium automático accesible': ('🚙', '#2E75B6'),
+    'Premium de entrada manual': ('🚗', '#5B9BD5'),
+    'Generalista': ('🚕', '#7F7F7F'),
+}
+fmt = lambda n: f'{n:,}'.replace(',', '.')
+coma = lambda x, d=1: f'{x:.{d}f}'.replace('.', ',')
 
-with st.expander('📊 Ver todos los perfiles y segmentos del inventario'):
-    st.markdown('El modelo K-means agrupó los **26.306 vehículos** del inventario en **11 perfiles**, que a su vez '
-                'se agrupan en **4 segmentos de negocio** según marca, transmisión y nivel de precio.')
 
-    fmt = lambda n: f'{n:,}'.replace(',', '.')
-    filas_seg = []
-    for nombre, desc in DESCRIPCION_SEGMENTOS.items():
+def rango_corto(rango):
+    # '£14.500 – £45.000' -> '£14,5k–45k' (para que quepa en la tarjeta)
+    a, b = [int(x.replace('.', '')) / 1000 for x in rango.replace('£', '').split(' – ')]
+    k = lambda v: coma(v).replace(',0', '')
+    return f'£{k(a)}k–{k(b)}k'
+
+st.markdown("""
+<style>
+.hero {background: linear-gradient(135deg, #16365C 0%, #1F4E79 55%, #2E75B6 100%);
+       color: #FFFFFF; border-radius: 16px; padding: 1.6rem 1.8rem 1.3rem; margin-bottom: 1.2rem;}
+.hero h1 {color: #FFFFFF; font-size: 2rem; margin: 0 0 .35rem 0; padding: 0;}
+.hero p {color: #DCE8F5; margin: 0; font-size: 1rem;}
+.hero .autos {font-size: 1.6rem; letter-spacing: .35rem; margin-bottom: .4rem;}
+.seg-card {border-left: 6px solid var(--c); background: rgba(128,128,128,.07);
+           border-radius: 10px; padding: .75rem 1rem; margin-bottom: .8rem; min-height: 8.2rem;}
+.seg-card .t {font-weight: 700; font-size: 1.02rem;}
+.seg-card .n {font-size: .85rem; opacity: .75; margin: .15rem 0 .35rem 0;}
+.seg-card .d {font-size: .9rem;}
+.perf-card {border-top: 5px solid var(--c); background: rgba(128,128,128,.07); border-radius: 12px;
+             padding: .8rem 1rem .9rem; margin-bottom: 1rem; min-height: 15.5rem;}
+.perf-card .top {display: flex; justify-content: space-between; align-items: center;}
+.perf-card .num {font-size: .8rem; font-weight: 700; letter-spacing: .06rem; text-transform: uppercase; opacity: .7;}
+.perf-card .em {font-size: 1.6rem;}
+.perf-card .nom {font-weight: 700; font-size: 1.05rem; margin: .25rem 0 .35rem 0; line-height: 1.3;}
+.perf-card .tag {display: inline-block; background: var(--c); color: #FFFFFF; border-radius: 999px;
+                 padding: .08rem .6rem; font-size: .75rem; margin-bottom: .5rem;}
+.perf-card .d {font-size: .88rem; margin-bottom: .6rem;}
+.perf-card .st {font-size: .82rem; border-top: 1px solid rgba(128,128,128,.25); padding-top: .45rem; line-height: 1.6;}
+.perf-card .baja {color: #B45309; font-weight: 600;}
+.res-card {border-left: 8px solid var(--c); background: rgba(128,128,128,.08);
+           border-radius: 12px; padding: 1rem 1.2rem; margin: .6rem 0 1rem 0;}
+.res-card .e {font-size: 2.2rem; line-height: 1;}
+.res-card .p {font-size: 1.25rem; font-weight: 700; margin-top: .3rem;}
+.res-card .s {display: inline-block; background: var(--c); color: #FFFFFF; border-radius: 999px;
+              padding: .15rem .7rem; font-size: .85rem; margin-top: .45rem;}
+.res-card .d {margin-top: .6rem;}
+[data-testid="stMetric"] {background: rgba(128,128,128,.07); border-radius: 10px; padding: .6rem .9rem;}
+button[kind="primary"], [data-testid="stBaseButton-primary"] {background-color: #1F4E79; border-color: #1F4E79;}
+button[kind="primary"]:hover, [data-testid="stBaseButton-primary"]:hover {background-color: #2E75B6; border-color: #2E75B6;}
+.pie {text-align: center; opacity: .65; font-size: .85rem; margin-top: 1.5rem;}
+</style>
+""", unsafe_allow_html=True)
+
+# ── Encabezado ───────────────────────────────────────────────────────────
+st.markdown("""
+<div class="hero">
+  <div class="autos">🚗 🚙 🏎️ 🚕 🚐</div>
+  <h1>Perfiles de vehículos usados</h1>
+  <p>Conoce los 11 perfiles de vehículos que componen el inventario y descubre a cuál pertenece un vehículo,
+  con la estrategia de compra y venta que le corresponde.</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ── 1. Perfiles del inventario (foco principal) ──────────────────────────
+st.markdown('### 🚗 Los 11 perfiles del inventario')
+st.markdown('El modelo K-means agrupó los **26.306 vehículos** del inventario en **11 perfiles**. Cada tarjeta resume '
+            'un perfil: cuántos vehículos tiene, su precio típico y qué tan bien definido está (silueta; la meta es 0,5).')
+
+cols = st.columns(3)
+for k, v in PERFILES.items():
+    emoji, color = ESTILO_SEG[v['segmento']]
+    n = N_VEHICULOS[k]
+    sil = coma(v['silueta'], 3)
+    sil_txt = (f'<span class="baja">⚠️ Silueta {sil} (bajo la meta)</span>' if v['silueta'] < META_SILUETA
+               else f'Silueta {sil}')
+    cols[k % 3].markdown(
+        f'<div class="perf-card" style="--c:{color}">'
+        f'<div class="top"><span class="num">Perfil {k}</span><span class="em">{emoji}</span></div>'
+        f'<div class="nom">{v["nombre"]}</div>'
+        f'<span class="tag">{v["segmento"]}</span>'
+        f'<div class="d">{v["descripcion"]}</div>'
+        f'<div class="st">🚗 {fmt(n)} vehículos ({coma(n / TOTAL * 100)}%)<br>'
+        f'💰 Mediana £{fmt(v["mediana"])} · 80% entre {v["rango"]}<br>{sil_txt}</div></div>',
+        unsafe_allow_html=True)
+
+with st.expander('🧩 Cómo se agrupan los perfiles en segmentos de negocio'):
+    st.markdown('Para la estrategia comercial, los perfiles se agrupan en **4 segmentos** según marca, '
+                'transmisión y nivel de precio.')
+    columnas = st.columns(2)
+    for i_seg, (nombre, desc) in enumerate(DESCRIPCION_SEGMENTOS.items()):
         ids = [k for k, v in PERFILES.items() if v['segmento'] == nombre]
         n = sum(N_VEHICULOS[k] for k in ids)
-        filas_seg.append({'Segmento': nombre, 'Perfiles': ', '.join(map(str, ids)),
-                          'Vehículos': f"{fmt(n)} ({f'{n / TOTAL * 100:.1f}'.replace('.', ',')}%)",
-                          'Descripción': desc})
-    st.markdown('**Segmentos**')
-    st.dataframe(pd.DataFrame(filas_seg), hide_index=True, width='stretch')
+        emoji, color = ESTILO_SEG[nombre]
+        columnas[i_seg % 2].markdown(
+            f'<div class="seg-card" style="--c:{color}">'
+            f'<div class="t">{emoji} {nombre}</div>'
+            f'<div class="n">Perfiles {", ".join(map(str, ids))} · {fmt(n)} vehículos ({coma(n / TOTAL * 100)}%)</div>'
+            f'<div class="d">{desc}</div></div>', unsafe_allow_html=True)
 
-    filas_perf = [{'Perfil': k, 'Descripción': v['nombre'], 'Segmento': v['segmento'],
-                   'Vehículos': fmt(N_VEHICULOS[k]),
-                   'Precio mediano': f"£{fmt(v['mediana'])}", '80% de los precios': v['rango'],
-                   'Silueta': f"{v['silueta']:.3f}".replace('.', ',')} for k, v in PERFILES.items()]
-    st.markdown('**Perfiles**')
-    st.dataframe(pd.DataFrame(filas_perf), hide_index=True, width='stretch')
-    st.caption('Silueta por perfil: la meta es 0,5. Los perfiles 7, 9 y 10 están por debajo, '
-               'así que su descripción representa con menos precisión a cada vehículo.')
+st.divider()
 
-st.markdown('#### Identificar el segmento de un vehículo')
-col1, col2 = st.columns(2)
-with col1:
-    brand = st.selectbox('Marca', ['Audi', 'BMW', 'Hyundai'])
-    transmission = st.selectbox('Transmisión', ['Automatic', 'Manual', 'Semi-Auto'],
-                                format_func={'Automatic': 'Automática', 'Manual': 'Manual',
-                                             'Semi-Auto': 'Semiautomática'}.get)
-    fuelType = st.selectbox('Combustible', ['Diesel', 'Hybrid', 'Petrol'],
-                            format_func={'Diesel': 'Diésel', 'Hybrid': 'Híbrido', 'Petrol': 'Gasolina'}.get)
-    year = st.slider('Año de matrícula', min_value=1998, max_value=2020, value=2017, step=1)
-    price = st.number_input('Precio publicado (£)', min_value=1200, max_value=145000, value=20000, step=500)
-with col2:
-    mileage = st.number_input('Millas recorridas', min_value=1, max_value=214000, value=20000, step=1000)
-    tax = st.number_input('Impuesto anual (£)', min_value=0, max_value=580, value=145, step=5)
-    mpg = st.number_input('Rendimiento (mpg)', min_value=5.5, max_value=470.8, value=50.0, step=0.5)
-    engineSize = st.number_input('Tamaño del motor (L)', min_value=0.6, max_value=6.6, value=2.0, step=0.1)
+# ── 2. Identificar el segmento de un vehículo ────────────────────────────
+st.markdown('### 🔎 ¿A qué perfil pertenece un vehículo?')
+with st.container(border=True):
+    col1, col2 = st.columns(2)
+    with col1:
+        brand = st.selectbox('Marca', ['Audi', 'BMW', 'Hyundai'])
+        transmission = st.selectbox('Transmisión', ['Automatic', 'Manual', 'Semi-Auto'],
+                                    format_func={'Automatic': 'Automática', 'Manual': 'Manual',
+                                                 'Semi-Auto': 'Semiautomática'}.get)
+        fuelType = st.selectbox('Combustible', ['Diesel', 'Hybrid', 'Petrol'],
+                                format_func={'Diesel': 'Diésel', 'Hybrid': 'Híbrido', 'Petrol': 'Gasolina'}.get)
+        year = st.slider('Año de matrícula', min_value=1998, max_value=2020, value=2017, step=1)
+        price = st.number_input('Precio publicado (£)', min_value=1200, max_value=145000, value=20000, step=500)
+    with col2:
+        mileage = st.number_input('Millas recorridas', min_value=1, max_value=214000, value=20000, step=1000)
+        tax = st.number_input('Impuesto anual (£)', min_value=0, max_value=580, value=145, step=5)
+        mpg = st.number_input('Rendimiento (mpg)', min_value=5.5, max_value=470.8, value=50.0, step=0.5)
+        engineSize = st.number_input('Tamaño del motor (L)', min_value=0.6, max_value=6.6, value=2.0, step=0.1)
+    boton = st.button('🚗 Identificar perfil', type='primary', width='stretch')
 
-if st.button('🔎 Identificar segmento', type='primary'):
+if boton:
     # 1. DataFrame con las mismas variables del entrenamiento
     data = pd.DataFrame([[year, mileage, tax, mpg, engineSize, price, transmission, fuelType, brand]],
                         columns=NUMERICAS + ['transmission', 'fuelType', 'brand'])
@@ -175,34 +251,44 @@ if st.button('🔎 Identificar segmento', type='primary'):
     distancia = float(modelo.transform(data_preparada)[0][cluster])
     perfil = PERFILES[cluster]
     segmento = SEGMENTOS[perfil['segmento']]
+    emoji, color = ESTILO_SEG[perfil['segmento']]
 
     # 5. Resultado
-    st.success(f"**Perfil {cluster}: {perfil['nombre']}**  \nSegmento: **{perfil['segmento']}**")
-    st.write(perfil['descripcion'])
+    st.markdown(
+        f'<div class="res-card" style="--c:{color}">'
+        f'<div class="e">{emoji}</div>'
+        f'<div class="p">Perfil {cluster}: {perfil["nombre"]}</div>'
+        f'<div class="s">Segmento: {perfil["segmento"]}</div>'
+        f'<div class="d">{perfil["descripcion"]}</div></div>', unsafe_allow_html=True)
 
     diferencia = (price - perfil['mediana']) / perfil['mediana'] * 100
     c1, c2, c3 = st.columns(3)
-    c1.metric('Precio mediano del perfil', f"£{perfil['mediana']:,.0f}".replace(',', '.'))
-    c2.metric('Precio ingresado frente a la mediana', f'{diferencia:+.0f}%')
-    c3.metric('80% de los precios del perfil', perfil['rango'])
+    c1.metric('Precio mediano del perfil', f"£{fmt(perfil['mediana'])}")
+    c2.metric('Precio ingresado vs. mediana', f'{diferencia:+.0f}%')
+    c3.metric('80% de los precios del perfil', rango_corto(perfil['rango']))
 
     if distancia > perfil['p95']:
-        st.warning('Este vehículo se aleja de lo habitual en su perfil (está más lejos del centroide que el 95% '
+        st.warning('⚠️ Este vehículo se aleja de lo habitual en su perfil (está más lejos del centroide que el 95% '
                    'de los vehículos del perfil). Valóralo de forma individual antes de hacer una oferta.')
-    st.subheader('Estrategia para este segmento')
-    st.markdown(f"**Compra:** {segmento['compras']}")
-    st.markdown(f"**Rotación y venta:** {segmento['rotacion']}")
 
-    st.caption('Datos ingresados')
-    st.dataframe(data, hide_index=True)
+    st.markdown('#### 🧭 Estrategia para este segmento')
+    e1, e2 = st.columns(2)
+    with e1.container(border=True):
+        st.markdown(f"**🛒 Compra**\n\n{segmento['compras']}")
+    with e2.container(border=True):
+        st.markdown(f"**🔁 Rotación y venta**\n\n{segmento['rotacion']}")
+
+    with st.expander('Datos ingresados'):
+        st.dataframe(data, hide_index=True)
 
     # 6. Confiabilidad de la asignación para este perfil
-    st.subheader('Confiabilidad de este resultado')
+    st.markdown('#### 🎯 Confiabilidad de este resultado')
     sil = perfil['silueta']
-    st.metric(f'Silueta del perfil {cluster}', f'{sil:.3f}'.replace('.', ','),
-              delta=f'{sil - META_SILUETA:+.3f} frente a la meta de 0,5'.replace('.', ','))
+    st.metric(f'Silueta del perfil {cluster}', coma(sil, 3),
+              delta=f'{coma(sil - META_SILUETA, 3) if sil < META_SILUETA else "+" + coma(sil - META_SILUETA, 3)} '
+                    f'frente a la meta de 0,5')
     if sil < META_SILUETA:
-        st.warning(f'La silueta de este perfil es {sil:.3f}'.replace('.', ',') + ', por debajo de la meta de 0,5. '
+        st.warning(f'La silueta de este perfil es {coma(sil, 3)}, por debajo de la meta de 0,5. '
                    'Es uno de los tres perfiles menos definidos del modelo (7, 9 y 10): sus vehículos se parecen '
                    'menos entre sí, así que la descripción, el precio mediano y la estrategia representan con menos '
                    'precisión a este vehículo. Valóralo de forma individual.')
@@ -210,16 +296,17 @@ if st.button('🔎 Identificar segmento', type='primary'):
         st.write('La silueta de este perfil supera la meta de 0,5: sus vehículos son parecidos entre sí y '
                  'están bien separados de los demás perfiles, así que la descripción es representativa.')
 
-# ── Calidad general del modelo (siempre visible) ─────────────────────────
+# ── 3. Calidad general del modelo (siempre visible) ──────────────────────
 st.divider()
-st.subheader('Calidad del modelo')
+st.markdown('### 📈 Calidad del modelo')
 m1, m2 = st.columns(2)
-m1.metric('Silueta general', f'{SILUETA_GLOBAL:.3f}'.replace('.', ','), delta='Cumple la meta de 0,5',
-          delta_color='off')
-m2.metric('Inercia general', f'{INERCIA_GLOBAL:,.1f}'.replace(',', 'X').replace('.', ',').replace('X', '.'))
+m1.metric('Silueta general', coma(SILUETA_GLOBAL, 3), delta='Cumple la meta de 0,5', delta_color='off')
+m2.metric('Inercia general', f'{fmt(int(INERCIA_GLOBAL))},{str(INERCIA_GLOBAL).split(".")[1][0]}')
 st.caption('**Silueta:** va de -1 a 1 y mide qué tan parecido es cada vehículo a los de su perfil frente a los del '
            'perfil más cercano. Valores cercanos a 1 indican perfiles bien definidos; la meta del proyecto es 0,5. '
            '**Inercia:** suma de las distancias al cuadrado de cada vehículo a su centroide, con los datos '
            'normalizados. Cuanto menor, más compactos son los perfiles; sirve para comparar modelos, no tiene unidades. '
            'Modelo K-means con 11 perfiles, entrenado con 26.306 vehículos. Los perfiles 7, 9 y 10 tienen silueta '
            'por debajo de la meta.')
+st.markdown('<div class="pie">🚗 🚙 🏎️ 🚕 🚐<br>Tasación inteligente de vehículos usados mediante minería de datos · '
+            'Maestría en Ciencia de Datos, UPB 2026</div>', unsafe_allow_html=True)

@@ -10,9 +10,9 @@ Aplicación web que asigna un vehículo usado a uno de los perfiles del inventar
 
 La aplicación tiene tres secciones:
 
-**1. Consultar la segmentación del inventario.** Una sección desplegable muestra los 4 segmentos y los 11 perfiles que resultaron del clustering, con el número de vehículos, el precio mediano, el rango de precios y la silueta de cada perfil. No requiere ingresar ningún dato.
+**1. Perfiles del inventario (sección principal).** Al ingresar, la aplicación muestra los 11 perfiles que resultaron del clustering, cada uno en una tarjeta con su descripción, segmento, número de vehículos, precio mediano, rango de precios y silueta. Debajo se puede consultar cómo se agrupan los perfiles en los 4 segmentos de negocio. No requiere ingresar ningún dato.
 
-**2. Identificar el segmento de un vehículo.** El comprador ingresa las características del vehículo (marca, transmisión, combustible, año, millas, impuesto, rendimiento, tamaño del motor y precio publicado) y la aplicación devuelve:
+**2. Identificar el perfil de un vehículo.** El comprador ingresa las características del vehículo (marca, transmisión, combustible, año, millas, impuesto, rendimiento, tamaño del motor y precio publicado) y la aplicación devuelve:
 
 - El **perfil** al que pertenece (uno de 11) y su descripción.
 - El **segmento de negocio** (uno de 4).
@@ -62,6 +62,7 @@ Preparación: normalización Min-Max de las variables numéricas y variables dum
 ├── app.py                    # Aplicación Streamlit
 ├── modelo-cla.pkl            # Modelo K-means + columnas del entrenamiento + escalador Min-Max
 ├── requirements.txt          # Dependencias
+├── .streamlit/config.toml    # Color del tema de la aplicación
 └── README.md
 ```
 
